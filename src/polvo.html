@@ -2659,10 +2659,12 @@ function makeCar(key, color, num, design, obj) {
     for (const sd of [-1, 1]) add(new THREE.BoxGeometry(0.03, pk ? 0.4 : 0.26, pk ? 0.42 : 0.34), dark, pk ? -s.b - 0.55 : -s.b * L / 4.15 - 0.42, pk ? (s.ride - 0.08) : RIDE_Y + 0.05, sd * (W / 2 - 0.22));
   }
   // ruedas
-  const rw = s.rw || 0.31;
-  const wheelGeo = new THREE.CylinderGeometry(rw, rw, s.style === 'pickup' ? 0.34 : 0.24, 12);
+  const wl = obj && obj.wl;
+  const rw = wl ? wl.rad : s.rw || 0.31;
+  const tWid = wl ? 0.24 * rw / 0.31 : s.style === 'pickup' ? 0.34 : 0.24;
+  const wheelGeo = new THREE.CylinderGeometry(rw, rw, tWid, 14);
   wheelGeo.rotateX(Math.PI / 2);
-  const hubGeo = new THREE.CylinderGeometry(rw * 0.52, rw * 0.52, s.style === 'pickup' ? 0.35 : 0.25, 6);
+  const hubGeo = new THREE.CylinderGeometry(rw * 0.52, rw * 0.52, tWid + 0.01, 6);
   hubGeo.rotateX(Math.PI / 2);
   const hubMat = toonMat({ color: 0xbdb6a6, flatShading: true });
   const wheels = [];
@@ -2670,7 +2672,8 @@ function makeCar(key, color, num, design, obj) {
   const wxs = [s.a * fl, s.a * fl, -s.b * fl, -s.b * fl], wys = [s.tw / 2, -s.tw / 2, s.tw / 2, -s.tw / 2];
   for (let i = 0; i < 4; i++) {
     const steer = new THREE.Group();
-    steer.position.set(wxs[i], rw, -Math.sign(wys[i]) * (W / 2 - (s.style === 'pickup' ? 0.1 : 0.07)));
+    if (wl) steer.position.set(i < 2 ? wl.f : wl.r, rw, -Math.sign(wys[i]) * (i < 2 ? wl.zf : wl.zr));
+    else steer.position.set(wxs[i], rw, -Math.sign(wys[i]) * (W / 2 - (s.style === 'pickup' ? 0.1 : 0.07)));
     steer.visible = !(obj && obj.wh);
     const spin = new THREE.Group();
     const t = new THREE.Mesh(wheelGeo, dark); t.castShadow = true;
@@ -3967,8 +3970,7 @@ function renderCars() {
     return;
   }
   carsEl.innerHTML = list.map(([id, d]) => {
-    const s = C.CARS[d.k];
-    return `<button class="car" data-m="${esc(id)}" aria-pressed="false"><b>${esc(cleanTitle(d.name) || 'Modelo')}</b><span class="size">${s.size} · ${s.mass} kg · ${s.len.toFixed(1).replace('.', ',')} m</span><span>${d.k === 'camioneta' ? 'En rally corre como Grande' : s.desc}</span></button>`;
+    return `<button class="car" data-m="${esc(id)}" aria-pressed="false"><b>${esc(cleanTitle(d.name) || 'Modelo')}</b></button>`;
   }).join('');
   syncMenu();
 }
@@ -4100,7 +4102,7 @@ function refreshLobby() {
   $('lCount').textContent = items.length;
   $('tabManejo').hidden = !G.isHost;
   if (!G.isHost && lobbyTab === 'manejo') setLobbyTab('pilotos');
-  $('plist').innerHTML = items.map((it) => `<li><span class="dot" style="background:${hex(it.color)}"></span><span>${esc(it.name)}${it.me ? ' <em>vos</em>' : ''}${it.host ? ' <em>anfitrión</em>' : ''}</span><em>${C.CARS[it.key].size}${it.ping ? ' · ' + Math.round(it.ping) + ' ms' : ''}</em></li>`).join('');
+  $('plist').innerHTML = items.map((it) => `<li><span class="dot" style="background:${hex(it.color)}"></span><span>${esc(it.name)}${it.me ? ' <em>vos</em>' : ''}${it.host ? ' <em>anfitrión</em>' : ''}</span><em>${it.ping ? Math.round(it.ping) + ' ms' : ''}</em></li>`).join('');
 }
 setInterval(() => { if (G.mode === 'play' && !$('lobby').hidden) refreshLobby(); }, 1000);
 
@@ -4566,9 +4568,9 @@ function garageBuild() {
   }
   const pct = Math.round((sh.mass / s.mass - 1) * 100);
   const cd = ob && ob.cat && G.catalog.get(ob.cat);
-  $('gInfo').textContent = `${cd ? cleanTitle(cd.name) || 'Modelo' : ob && ob.name ? ob.name : 'Sin modelo'} · clase ${s.size} · masa ${sh.mass} kg (${pct >= 0 ? '+' : ''}${pct}% por volumen, tope ±12%)`;
+  $('gInfo').textContent = `${cd ? cleanTitle(cd.name) || 'Modelo' : ob && ob.name ? ob.name : 'Sin modelo'} · ${sh.mass} kg`;
   for (const b of $('gCars').children) b.setAttribute('aria-pressed', String(b.dataset.k === key));
-  $('gCarsBox').hidden = !canAdmin;
+  $('gCarsBox').hidden = true; // un solo tamaño: todos los autos corren con la misma física
   $('gObjBtn').parentElement.hidden = !canAdmin;
   $('gPaintSec').hidden = !ob || !!ob.scaled;
   $('gObjCtl').hidden = !ob || ob.def || !!ob.scaled || !canAdmin;
@@ -4863,7 +4865,14 @@ async function unpackBody(str, meta) {
   const pc = new Uint8Array(nt).fill(255);
   if (v2) { pc.set(u8.subarray(o, o + nt)); for (let i = 0; i < nt; i++) if (pc[i] >= PAL.length && pc[i] !== 255) pc[i] = 255; }
   const bc = v2 ? clamp(dv.getUint8(28), 0, PAL.length - 1) : nearestPal(meta.c != null ? meta.c : prefs.color);
-  return { k: meta.k, wh: v2 ? !!dv.getUint8(30) : !!meta.wh, def: v2 ? !!dv.getUint8(29) : false, name: cleanTitle(meta.name), pos, idx, mat, pc, bc, tris: nt };
+  return { k: meta.k, wh: v2 ? !!dv.getUint8(30) : !!meta.wh, def: v2 ? !!dv.getUint8(29) : false, name: cleanTitle(meta.name), pos, idx, mat, pc, bc, tris: nt, wl: cleanWl(meta.wl) };
+}
+// ruedas propias de cada modelo: eje delantero f y trasero r (m sobre el largo), trocha zf/zr (centro de la rueda) y radio
+function cleanWl(w) {
+  if (!w || typeof w !== 'object') return null;
+  const n = (v, lo, hi) => (Number.isFinite(+v) ? clamp(+v, lo, hi) : NaN);
+  const o = { f: n(w.f, 0.3, 3), r: n(w.r, -3, -0.3), zf: n(w.zf, 0.3, 1.5), zr: n(w.zr, 0.3, 1.5), rad: n(w.rad, 0.15, 0.6) };
+  return Object.values(o).every(Number.isFinite) ? o : null;
 }
 // cuerpos propios: guardados comprimidos en este navegador
 const objs = {};
@@ -4895,7 +4904,8 @@ function bodyForClass(o, key) {
   const a = C.classBox(o.k), b = C.classBox(key), rx = b.x / a.x, rz = b.z / a.z, ry = (b.y1 - b.y0) / (a.y1 - a.y0);
   const P = o.pos, pos = new Float32Array(P.length);
   for (let i = 0; i < P.length; i += 3) { pos[i] = P[i] * rx; pos[i + 1] = b.y0 + (P[i + 1] - a.y0) * ry; pos[i + 2] = P[i + 2] * rz; }
-  return (m[key] = Object.assign({}, o, { k: key, pos, scaled: true }));
+  const w = o.wl, wl = w ? { f: w.f * rx, r: w.r * rx, zf: w.zf * rz, zr: w.zr * rz, rad: clamp(b.y0 + (w.rad - a.y0) * ry, 0.15, 0.6) } : null; // la rueda crece con la carrocería y sigue tocando el piso
+  return (m[key] = Object.assign({}, o, { k: key, pos, wl, scaled: true }));
 }
 // ajuste del modelo importado: estirar en largo (X), alto (Y) y ancho (Z), y correrlo adelante/atrás y arriba/abajo
 const ADJ0 = { sx: 1, sy: 1, sz: 1, ox: 0, oy: 0 };
@@ -4909,7 +4919,8 @@ function applyAdj(base, adj) {
   let y0 = Infinity; for (let i = 1; i < P.length; i += 3) y0 = Math.min(y0, P[i]);
   const pos = new Float32Array(P.length);
   for (let i = 0; i < P.length; i += 3) { pos[i] = P[i] * A.sx + A.ox; pos[i + 1] = y0 + (P[i + 1] - y0) * A.sy + A.oy; pos[i + 2] = P[i + 2] * A.sz; }
-  return { k: base.k, wh: base.wh, name: base.name, pos, idx: base.idx, mat: base.mat, pc: base.pc, bc: base.bc, def: base.def, tris: base.tris, base, adj: A, packed: base.packed || null, cat: base.cat || null };
+  const w = base.wl, wl = w ? { f: w.f * A.sx + A.ox, r: w.r * A.sx + A.ox, zf: w.zf * A.sz, zr: w.zr * A.sz, rad: w.rad } : null;
+  return { k: base.k, wh: base.wh, name: base.name, pos, idx: base.idx, mat: base.mat, pc: base.pc, bc: base.bc, def: base.def, tris: base.tris, wl, base, adj: A, packed: base.packed || null, cat: base.cat || null };
 }
 const ADJ_IDS = { sx: 'gAdjSx', sy: 'gAdjSy', sz: 'gAdjSz', ox: 'gAdjOx', oy: 'gAdjOy' };
 function adjToUi(a) {
@@ -5105,7 +5116,7 @@ async function saveBody(key) {
   const base = o.base || o;
   const d = base.packed || (base.packed = await packBody(base));
   o.packed = d;
-  objPacked[key] = { d, wh: o.wh, name: o.name, dbId: null, adj: o.adj, cat: o.cat || null };
+  objPacked[key] = { d, wh: o.wh, name: o.name, dbId: null, adj: o.adj, cat: o.cat || null, wl: base.wl || null };
   const localOk = store.set('bodies2', objPacked);
   if (!localOk) { objPacked[key] = { wh: o.wh, name: o.name, dbId: null, adj: o.adj }; store.set('bodies2', objPacked); }
   clearTimeout(saveObjT);
@@ -5117,7 +5128,7 @@ async function saveBody(key) {
     if (parts.length > 8) { toast('El modelo es demasiado grande para compartirlo: bajá el detalle'); return; }
     try {
       for (let i = 1; i < parts.length; i++) await dbApi.doc('bodies/' + id + '-p' + i).set({ c: parts[i] });
-      await dbApi.doc('bodies/' + id).set({ k: key, wh: o.wh, name: o.name || '', tris: o.tris, n: parts.length, c0: parts[0], adj: o.adj, at: Date.now() });
+      await dbApi.doc('bodies/' + id).set({ k: key, wh: o.wh, name: o.name || '', tris: o.tris, n: parts.length, c0: parts[0], adj: o.adj, wl: base.wl || null, at: Date.now() });
       if (objs[key] === o) {
         o.dbId = id + '~' + Date.now().toString(36);
         objPacked[key].dbId = o.dbId;
@@ -5227,9 +5238,7 @@ function selId() {
   const d = l.find(([, x]) => x.def); return (d || l[0])[0];
 }
 function selClass() {
-  const d = G.catalog && G.catalog.get(selId());
-  const k = d ? d.k : prefs.car;
-  return C.RALLY_KEYS.includes(k) ? k : 'tormenta';
+  return 'halcon'; // todos los autos usan la misma clase; cambia solo la carrocería
 }
 const catRefOf = (id) => { const d = G.catalog.get(id); return 'c:' + id + '~' + ((d && d.at) || 0).toString(36); };
 // cuerpo del modelo elegido sin adaptar: tu versión pintada si la tenés, si no el del catálogo
@@ -5267,8 +5276,8 @@ function catalogUi() {
   const g = G.garage, key = g.key, box = $('gCat'), cur = selId();
   const list = catList();
   const opts = (k0) => C.CAR_KEYS.map((k) => `<option value="${k}"${k === k0 ? ' selected' : ''}>${C.CARS[k].size}</option>`).join('');
-  box.innerHTML = list.length ? list.map(([id, d]) => `<li><span><b>${esc(cleanTitle(d.name) || 'Modelo')}</b>${d.def ? ' <em>predeterminado</em>' : ''}<small>${C.CARS[d.k].size} · ${(Number(d.tris) || 0).toLocaleString('es-AR')} triángulos</small></span>
-    <span class="row"><button class="btn sm" data-use="${esc(id)}" aria-pressed="${id === cur}"${id === cur ? ' disabled' : ''}>${id === cur ? 'Elegido' : 'Elegir'}</button>${canAdmin ? `<select class="field sm" data-cls="${esc(id)}" title="Clase (tamaño)">${opts(d.k)}</select><button class="btn sm" data-def="${esc(id)}" aria-pressed="${!!d.def}">Predeterminado</button><button class="btn sm" data-del="${esc(id)}">Quitar</button>` : ''}</span></li>`).join('')
+  box.innerHTML = list.length ? list.map(([id, d]) => `<li><span><b>${esc(cleanTitle(d.name) || 'Modelo')}</b>${d.def ? ' <em>predeterminado</em>' : ''}<small>${(Number(d.tris) || 0).toLocaleString('es-AR')} triángulos</small></span>
+    <span class="row"><button class="btn sm" data-use="${esc(id)}" aria-pressed="${id === cur}"${id === cur ? ' disabled' : ''}>${id === cur ? 'Elegido' : 'Elegir'}</button>${canAdmin ? `<button class="btn sm" data-def="${esc(id)}" aria-pressed="${!!d.def}">Predeterminado</button><button class="btn sm" data-del="${esc(id)}">Quitar</button>` : ''}</span></li>`).join('')
     : `<li class="note">${dbApi ? 'Todavía no hay modelos cargados.' : 'El catálogo se ve abriendo el juego desde claude.ai.'}</li>`;
   $('gCatAdmin').hidden = !canAdmin || !dbApi;
   const o = objs[key];
@@ -5291,13 +5300,13 @@ $('gCat').addEventListener('change', async (e) => {
 async function recastModel(id, d, k) {
   const b = await loadCatalogBody(id); if (!b) throw new Error();
   const s = bodyForClass(b, k);
-  const nb = { k, wh: b.wh, name: b.name, pos: s.pos, idx: b.idx, mat: b.mat, pc: b.pc, bc: b.bc, def: false, tris: b.tris };
+  const nb = { k, wh: b.wh, name: b.name, pos: s.pos, idx: b.idx, mat: b.mat, pc: b.pc, bc: b.bc, def: false, tris: b.tris, wl: s.wl };
   const str = await packBody(nb);
   const CH = 240000, parts = []; for (let i = 0; i < str.length; i += CH) parts.push(str.slice(i, i + CH));
   if (parts.length > 10) throw new Error();
   for (let i = 0; i < parts.length; i++) await dbApi.doc('catalog/' + id + '/parts/p' + i).set({ c: parts[i] });
   for (let i = parts.length; i < (d.n || 0); i++) await dbApi.doc('catalog/' + id + '/parts/p' + i).delete();
-  await dbApi.doc('catalog/' + id).set(Object.assign({}, d, { k, n: parts.length, adj: ADJ0, tris: b.tris, at: Date.now() }));
+  await dbApi.doc('catalog/' + id).set(Object.assign({}, d, { k, n: parts.length, adj: ADJ0, tris: b.tris, wl: s.wl || null, at: Date.now() }));
 }
 $('gCat').addEventListener('click', async (e) => {
   const def = e.target.closest('[data-def]'), del = e.target.closest('[data-del]'), use = e.target.closest('[data-use]');
@@ -5339,7 +5348,7 @@ $('gCatPub').addEventListener('click', async () => {
     for (let i = 0; i < parts.length; i++) await dbApi.doc('catalog/' + id + '/parts/p' + i).set({ c: parts[i] });
     for (let i = parts.length; i < ((old && old.n) || 0); i++) await dbApi.doc('catalog/' + id + '/parts/p' + i).delete();
     const name = cleanTitle($('gCatName').value) || o.name || 'Modelo';
-    const meta = { name, k: key, tris: o.tris, n: parts.length, adj: o.adj || ADJ0, def: !!(old && old.def), by: cleanName(prefs.name) || 'Piloto', at: Date.now() };
+    const meta = { name, k: 'halcon', wl: base.wl || null, tris: o.tris, n: parts.length, adj: o.adj || ADJ0, def: !!(old && old.def), by: cleanName(prefs.name) || 'Piloto', at: Date.now() };
     await dbApi.doc('catalog/' + id).set(meta);
     o.cat = id; base.cat = id; o.name = name; base.name = name;
     o.catRef = 'c:' + id + '~' + meta.at.toString(36); o.dbId = o.catRef;

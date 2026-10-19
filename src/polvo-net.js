@@ -265,7 +265,7 @@
       <div class="row" id="accOut" hidden><button class="btn" id="accLogout">Cerrar sesión</button></div>
       <div id="accAdmin" hidden style="display:grid;gap:8px">
         <p class="label" style="margin:0">Dueño</p>
-        <button class="btn sm" id="accSeed">Importar autos y pistas de la versión de Claude</button>
+        <button class="btn sm" id="accSeed">Actualizar autos y pistas</button>
         <p class="note" id="accSeedNote"></p>
       </div>
       <p class="note" id="accNet"></p>
@@ -293,22 +293,40 @@
     $('accIn').addEventListener('click', () => ready.then(() => go((x) => sb.auth.signInWithPassword(x))));
     $('accUp').addEventListener('click', () => ready.then(() => go((x) => sb.auth.signUp(x))));
     $('accLogout').addEventListener('click', async () => { await sb.auth.signOut(); localStorage.removeItem('polvo.auth'); location.reload(); });
+    // deja el catálogo igual al de esta versión de la app: sube los autos y pistas, y saca los autos que ya no están
+    async function syncSeed(note) {
+      const say = (t) => { if (note) note.textContent = t; };
+      say('Leyendo datos…');
+      const seed = await (await fetch('seed.json')).json();
+      const paths = Object.keys(seed);
+      const keep = new Set(paths.filter((p) => /^catalog\/[^/]+$/.test(p)));
+      const { data: cur, error: e0 } = await sb.from('docs').select('path,data').eq('coll', 'catalog');
+      if (e0) throw e0;
+      for (const r of cur || []) {
+        if (keep.has(r.path)) continue;
+        const n = Math.min(12, Math.max(1, (r.data && r.data.n) || 1));
+        for (let i = 0; i < n; i++) await sb.from('docs').delete().eq('path', r.path + '/parts/p' + i);
+        const { error } = await sb.from('docs').delete().eq('path', r.path); if (error) throw error;
+      }
+      let n = 0;
+      for (const p of paths) {
+        const { error } = await sb.from('docs').upsert({ path: p, data: seed[p] }, { onConflict: 'path' });
+        if (error) throw error;
+        n++; say(`Subiendo ${n} de ${paths.length}…`);
+      }
+      say('Listo: autos y pistas actualizados.');
+      try { localStorage.setItem('polvo.seedv', String(window.POLVO_VERSION || '')); } catch (e) { /* nada */ }
+    }
     $('accSeed').addEventListener('click', async () => {
       const note = $('accSeedNote'), btn = $('accSeed'); btn.disabled = true;
-      try {
-        note.textContent = 'Leyendo datos…';
-        const seed = await (await fetch('seed.json')).json();
-        const paths = Object.keys(seed);
-        let n = 0;
-        for (const p of paths) {
-          const { error } = await sb.from('docs').upsert({ path: p, data: seed[p] }, { onConflict: 'path' });
-          if (error) throw error;
-          n++; note.textContent = `Subiendo ${n} de ${paths.length}…`;
-        }
-        note.textContent = 'Listo: autos y pistas importados.';
-      } catch (e) { note.textContent = 'No se pudo importar: ' + (e.message || e); }
+      try { await syncSeed(note); } catch (e) { note.textContent = 'No se pudo actualizar: ' + (e.message || e); }
       btn.disabled = false;
     });
+    // el dueño, al abrir una versión nueva, actualiza el catálogo solo
+    ready.then(() => {
+      let v = null; try { v = localStorage.getItem('polvo.seedv'); } catch (e) { /* nada */ }
+      if (isAdmin() && window.POLVO_VERSION && v !== String(window.POLVO_VERSION)) syncSeed(null).catch(() => {});
+    }, () => {});
     ready.then(refresh, refresh);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', accountUi); else accountUi();
