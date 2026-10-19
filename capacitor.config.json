@@ -1,0 +1,10 @@
+{
+  "appId": "ar.solvo.polvo",
+  "appName": "Polvo",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#15130f",
+    "allowMixedContent": false
+  },
+  "server": { "androidScheme": "https" }
+}

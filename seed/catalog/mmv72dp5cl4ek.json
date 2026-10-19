@@ -1,0 +1,16 @@
+{
+  "adj": {
+    "ox": -0.16,
+    "oy": -0.11,
+    "sx": 0.88,
+    "sy": 0.89,
+    "sz": 1.3
+  },
+  "at": 1791919125511,
+  "by": "SOLVEICHON",
+  "def": false,
+  "k": "brisa",
+  "n": 2,
+  "name": "PickUp",
+  "tris": 44857
+}

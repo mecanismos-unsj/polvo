@@ -1,0 +1,37 @@
+name: APK de Polvo
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: python3 build-www.py
+      - run: npx cap sync android
+      - name: Compilar APK
+        run: cd android && chmod +x gradlew && ./gradlew assembleRelease --no-daemon --stacktrace
+      - run: cp android/app/build/outputs/apk/release/app-release.apk polvo.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: polvo-apk
+          path: polvo.apk
+      - name: Publicar versión
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: Polvo 1.${{ github.run_number }}
+          files: polvo.apk

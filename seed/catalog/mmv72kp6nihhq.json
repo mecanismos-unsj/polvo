@@ -1,0 +1,16 @@
+{
+  "adj": {
+    "ox": 0.06,
+    "oy": -0.18,
+    "sx": 1,
+    "sy": 1,
+    "sz": 1
+  },
+  "at": 1791919465754,
+  "by": "SOLVEICHON",
+  "def": false,
+  "k": "brisa",
+  "n": 2,
+  "name": "Race Truck",
+  "tris": 44999
+}
