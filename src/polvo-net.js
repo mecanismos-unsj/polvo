@@ -312,4 +312,37 @@
     ready.then(refresh, refresh);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', accountUi); else accountUi();
+
+  // ===================================================================
+  // AVISO DE VERSIÓN NUEVA: al abrir, se fija en GitHub si hay una APK más nueva
+  // ===================================================================
+  async function checkUpdate() {
+    const mine = Number(window.POLVO_VERSION) || 0;
+    if (!mine || !CFG.repo) return;
+    try {
+      const r = await fetch('https://api.github.com/repos/' + CFG.repo + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+      if (!r.ok) return;
+      const rel = await r.json();
+      const n = Number(String(rel.tag_name || '').replace(/^v1\./, '')) || 0;
+      const apk = (rel.assets || []).find((a) => /\.apk$/i.test(a.name));
+      if (n <= mine || !apk) return;
+      if (sessionStorage.getItem('polvo.skip') === String(n)) return;
+      const menu = document.getElementById('menu'); if (!menu || document.getElementById('updBox')) return;
+      const box = document.createElement('div');
+      box.id = 'updBox';
+      box.style.cssText = 'display:grid;gap:8px;padding:10px 12px;border:1px solid var(--plate);border-radius:5px;background:rgba(240,192,58,.1)';
+      box.innerHTML = `<p class="note" style="margin:0;color:var(--paper)"><b>Hay una versión nueva (1.${n}).</b> Tenés la 1.${mine}.</p>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px"><button class="btn primary sm" id="updGo">Actualizar</button><button class="btn sm" id="updLater">Más tarde</button></div>`;
+      menu.insertBefore(box, menu.children[1] || null);
+      box.querySelector('#updGo').addEventListener('click', () => {
+        // se abre en el navegador del teléfono, que la descarga; después hay que tocar el archivo para instalarla
+        location.href = apk.browser_download_url;
+        box.querySelector('.note').innerHTML = '<b>Descargando…</b> Cuando termine, abrí el archivo <b>polvo.apk</b> desde la notificación y tocá <b>Actualizar</b>.';
+      });
+      box.querySelector('#updLater').addEventListener('click', () => { sessionStorage.setItem('polvo.skip', String(n)); box.remove(); });
+    } catch (e) { /* sin internet: se avisa la próxima vez */ }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(checkUpdate, 1500)); else setTimeout(checkUpdate, 1500);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkUpdate(); });
+
 })();

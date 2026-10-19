@@ -37,11 +37,13 @@ for a, b in rep:
     g = g.replace(a, b)
 for a, b in [("abriendo el juego desde claude.ai", "con conexión a internet"), ("abrí el juego desde claude.ai", "conectate a internet")]:
     g = g.replace(a, b)
+ver = int(os.environ.get('GITHUB_RUN_NUMBER', '0') or 0)
 head = '''<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#15130f">
 <style>:root{box-sizing:border-box}body{margin:0;padding:0;background:#15130f}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>
 <script src="vendor/supabase.js"></script>
+<script>window.POLVO_VERSION = ''' + str(ver) + ''';</script>
 <script src="polvo-config.js"></script>
 <script src="polvo-net.js"></script>
 </head><body>
