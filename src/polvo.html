@@ -525,10 +525,15 @@ html.touch .gear { font-size: 30px; width: 36px; height: 42px; }
     <button class="btn sm" data-preset="az">A Z + flechas</button>
   </div>
   <p class="note">Se guarda en este navegador. El joystick funciona siempre.</p>
+  <div class="gfxrow">
+    <p class="label" style="margin:0">Dirección</p>
+    <div class="tune"><label for="tSteerS">Sensibilidad</label><input type="range" id="tSteerS" min="30" max="100" step="5" value="100"><output id="tSteerSO">100%</output></div>
+    <p class="note">Menos sensibilidad: el volante gira más lento con teclas o botones y dobla menos con poco recorrido del dedo o del joystick. Es solo tuya.</p>
+  </div>
   <div class="gfxrow" id="touchSet" hidden>
     <p class="label" style="margin:0">Pantalla táctil</p>
     <div class="seg seg2" id="segSteer"><button data-s="drag" aria-pressed="true">Deslizar</button><button data-s="btn" aria-pressed="false">Botones</button></div>
-    <div class="tune"><label for="tSens">Sensibilidad</label><input type="range" id="tSens" min="30" max="150" step="5" value="80"><output id="tSensO">80</output></div>
+    <div class="tune"><label for="tSens">Recorrido del dedo</label><input type="range" id="tSens" min="30" max="150" step="5" value="80"><output id="tSensO">80</output></div>
     <p class="note">Deslizar: apoyá el dedo en la mitad izquierda y movelo a los costados; cuanto más lejos, más dobla.</p>
   </div>
   <div class="gfxrow">
@@ -1336,7 +1341,7 @@ class Car {
     this.driven = s.drive === 'F' ? [1, 1, 0, 0] : s.drive === 'R' ? [0, 0, 1, 1] : [1, 1, 1, 1];
   }
   reset(x, y, h) {
-    this.recover = 0; this.wzOk = false; this.jolt = 0; if (this.air) this.air.fill(0);
+    this.recover = 0; this.loose = 0; this.wzOk = false; this.jolt = 0; if (this.air) this.air.fill(0);
     this.roll = 0; this.rollV = 0; this.rollGrip = 1; this.clock = 0; this.sideHit = [-9, 0, -9, 0];
     this.x = x; this.y = y; this.h = h;
     this.vx = 0; this.vy = 0; this.yr = 0;
@@ -1488,7 +1493,7 @@ class Car {
         const alpha = Math.atan2(vlat, Math.max(Math.abs(vlong), 1.5));
         const sa = Math.tan(clamp(alpha, -1.4, 1.4)) / Math.tan(sf.ap);
         const tyre = sf.sink > 0.3 ? (s.looseGrip || 1) : (s.roadGrip || 1); // cubiertas de barro: mejor en lo blando
-        const mu = sf.mu * tyre * tn.grip * (1 - 0.06 * (fz / (3000 * this.k) - 1)) * this.rollGrip; // sensibilidad a la carga; sin ruedas en el piso no hay agarre
+        const mu = sf.mu * tyre * tn.grip * (1 - 0.06 * (fz / (3000 * this.k) - 1)) * this.rollGrip * (1 - (this.loose || 0)); // sensibilidad a la carga; sin ruedas en el piso no hay agarre
         const fmax = mu * fz;
         const lat = i < 2 ? frontLat : rearLat;
         const braking = this.brk > 0.05 || (i >= 2 && this.hb);
@@ -1560,6 +1565,7 @@ class Car {
       this.ay = lerp(this.ay, clamp(Fy / m, -15, 15), k);
     }
     if (this.recover > 0) this.recover = Math.max(0, this.recover - dt * 1.4);
+    if (this.loose > 0) this.loose = Math.max(0, this.loose - dt * 1.1);
     this.stepRoll(dt, grad);
     if (this.h > Math.PI) this.h -= TAU; else if (this.h < -Math.PI) this.h += TAU;
     if (!isFinite(this.x + this.y + this.vx + this.vy + this.yr)) this.reset(0, 0, 0);
@@ -1645,9 +1651,11 @@ class Car {
 Car.C = { e: 0.12, ang: 0.32, fric: 0.12 };
 // vuelco: zona de suspensión (rad), brazo efectivo de los golpes (m), aporte de las cubiertas, encierro, velocidad para pasar de costado a techo
 Car.R = { lift: 0.07, arm: 0.3, tire: 0.3, pinch: 0.4, sideStop: 2.6 };
+// choques entre autos: más rebote, giro casi físico y las cubiertas se despegan un momento (el golpe hace patinar)
+Car.CC = { e: 0.2, ang: 0.9, loose: 0.6, rec: 0.25 };
 function crashK(car) { const k = car.tune && car.tune.impact != null ? car.tune.impact : 1; return { e: clamp(Car.C.e * k, 0, 0.6), I: car.Iz / clamp(Car.C.ang * k, 0.05, 1), f: Car.C.fric }; }
 // tras un golpe el auto se estabiliza solo un momento (más amortiguación de giro)
-function afterHit(car, v) { if (v > 1) { car.recover = Math.max(car.recover || 0, clamp(v / 7, 0.25, 1)); } car.yr = clamp(car.yr, -2.6, 2.6); }
+function afterHit(car, v, soft) { if (v > 1) { car.recover = Math.max(car.recover || 0, clamp(v / 7, 0.25, 1) * (soft || 1)); } car.yr = clamp(car.yr, -(soft ? 4.5 : 2.6), soft ? 4.5 : 2.6); }
 Car.P = { fr: 0.35, rr: 0, fa: 0.5, ra: 1.2, fk: 0.3, bc: 1.0, fb: 1.1 }; // reparto de freno al doblar (ajustado por simulación)
 // impulso de choque contra un círculo fijo o contra otro auto (masa igual, se aplica solo a este)
 function collideStatic(car, ox, oy, orad, e) {
@@ -1742,7 +1750,10 @@ function collideCars(car, o) {
 // choque entre dos autos: impulsos iguales y opuestos (el más liviano sufre más)
 function collidePair(A, B, e, impulse) {
   let hit = 0;
-  const KA = crashK(A), KB = crashK(B), ee = Math.min(KA.e, KB.e), fr = Math.min(KA.f, KB.f);
+  const kA = A.tune && A.tune.impact != null ? A.tune.impact : 1, kB = B.tune && B.tune.impact != null ? B.tune.impact : 1;
+  const CC = Car.CC, ee = clamp(CC.e * Math.min(kA, kB), 0, 0.6), fr = Car.C.fric;
+  const KA = { I: A.Iz / clamp(CC.ang * kA, 0.05, 1) }, KB = { I: B.Iz / clamp(CC.ang * kB, 0.05, 1) };
+  let jMax = 0;
   const bc = B.circles();
   for (const [cx, cy, cr] of A.circles()) {
     for (const [qx, qy, qr] of bc) {
@@ -1764,6 +1775,7 @@ function collidePair(A, B, e, impulse) {
       A.vx += j * nx / ma; A.vy += j * ny / ma; A.yr += ra * j / KA.I;
       B.vx -= j * nx / mb; B.vy -= j * ny / mb; B.yr -= rb * j / KB.I;
       A.rollKick(j * nx, j * ny, 1.3); B.rollKick(-j * nx, -j * ny, 1.3);
+      jMax = Math.max(jMax, j);
       // roce tangencial suave
       const tx = -ny, ty = nx;
       const vt = ((A.vx - A.yr * ry) - (B.vx - B.yr * sy)) * tx + ((A.vy + A.yr * rx) - (B.vy + B.yr * sx)) * ty;
@@ -1773,7 +1785,11 @@ function collidePair(A, B, e, impulse) {
       hit = Math.max(hit, -vn);
     }
   }
-  if (hit) { afterHit(A, hit); afterHit(B, hit); }
+  if (hit) {
+    afterHit(A, hit, CC.rec); afterHit(B, hit, CC.rec);
+    // las cubiertas pierden agarre según el golpe (Δv ~ j/m): un toque al costado trasero hace trompear
+    for (const [c, k] of [[A, kA], [B, kB]]) c.loose = Math.max(c.loose || 0, clamp(jMax / c.spec.mass / 9 * CC.loose * k, 0, 0.75));
+  }
   return hit;
 }
 
@@ -2955,9 +2971,20 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('keyup', (e) => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
+// sensibilidad de la dirección (de cada jugador): con teclas o botones el volante va de a poco; con dedo o joystick, curva más suave al centro
+const SS = { sens: clamp(+store.get('ssens', 100) || 100, 30, 100) / 100, v: 0, t: 0 };
+function steerFilter(raw, analog) {
+  const t = performance.now(), dt = SS.t ? clamp((t - SS.t) / 1000, 0, 0.1) : 0; SS.t = t;
+  const k = SS.sens;
+  if (analog) { SS.v = Math.sign(raw) * Math.pow(Math.abs(raw), 1 + (1 - k) * 1.2) * (0.55 + 0.45 * k); return SS.v; }
+  const target = raw * (0.6 + 0.4 * k), back = raw === 0 || Math.sign(raw) !== Math.sign(SS.v);
+  const rate = back ? 6 : 1.6 + 8 * k * k; // volver al centro siempre rápido
+  SS.v += clamp(target - SS.v, -rate * dt, rate * dt);
+  return SS.v;
+}
 function readInput() {
   if (window.__polvoInput) return window.__polvoInput();
-  let steer = 0, thr = 0, brk = 0, hb = 0;
+  let steer = 0, thr = 0, brk = 0, hb = 0, analogPad = false;
   if (!$('keysPanel').hidden) return { steer, thr, brk, hb };
   if (bound('left')) steer += 1;
   if (bound('right')) steer -= 1;
@@ -2968,7 +2995,7 @@ function readInput() {
   for (const p of pads) {
     if (!p || !p.connected) continue;
     const ax = p.axes[0] || 0;
-    if (Math.abs(ax) > 0.12) steer = -Math.sign(ax) * (Math.abs(ax) - 0.12) / 0.88;
+    if (Math.abs(ax) > 0.12) { steer = -Math.sign(ax) * (Math.abs(ax) - 0.12) / 0.88; analogPad = true; }
     const rt = p.buttons[7] ? p.buttons[7].value : 0, lt = p.buttons[6] ? p.buttons[6].value : 0;
     thr = Math.max(thr, rt, p.buttons[0] && p.buttons[0].pressed ? 1 : 0);
     brk = Math.max(brk, lt);
@@ -2976,12 +3003,13 @@ function readInput() {
     if (p.buttons[3] && p.buttons[3].pressed && !G.padY) { G.padY = true; respawn(); } else if (!(p.buttons[3] && p.buttons[3].pressed)) G.padY = false;
     break;
   }
+  let analog = analogPad;
   if (TS.on) {
-    if (TS.mode === 'btn') { const b = TS.left - TS.right; if (b) steer = b; }
-    else if (TS.drag != null) steer = TS.steer;
+    if (TS.mode === 'btn') { const b = TS.left - TS.right; if (b) { steer = b; analog = false; } }
+    else if (TS.drag != null) { steer = TS.steer; analog = true; }
     thr = Math.max(thr, TS.thr); brk = Math.max(brk, TS.brk); hb = Math.max(hb, TS.hb);
   }
-  return { steer, thr, brk, hb };
+  return { steer: steerFilter(steer, analog), thr, brk, hb };
 }
 
 // ---------- controles táctiles ----------
@@ -3079,6 +3107,9 @@ async function toggleFull() {
   } catch (err) { toast(IS_TOUCH ? 'Acá no se puede: abrí el juego en pantalla completa desde el visor de Claude' : 'Acá no se puede: usá F11 o el botón de pantalla completa del visor'); }
 }
 $('segSteer').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; TS.mode = b.dataset.s; store.set('tsteer', TS.mode); touchMode(); });
+function steerSensUi() { $('tSteerS').value = Math.round(SS.sens * 100); $('tSteerSO').textContent = Math.round(SS.sens * 100) + '%'; }
+steerSensUi();
+$('tSteerS').addEventListener('input', (e) => { SS.sens = clamp(+e.target.value, 30, 100) / 100; store.set('ssens', Math.round(SS.sens * 100)); steerSensUi(); });
 $('tSens').addEventListener('input', (e) => { TS.sens = clamp(+e.target.value, 30, 150); store.set('tsens', TS.sens); $('tSensO').textContent = TS.sens; });
 $('bFull').addEventListener('click', toggleFull);
 const fsSync = () => { $('bFull').textContent = (document.fullscreenElement || document.webkitFullscreenElement) ? 'Salir de pantalla completa' : 'Pantalla completa'; };
@@ -4143,7 +4174,7 @@ function toMenu() {
 const PAL = [0xf2efe6, 0xb9b4a8, 0x5f5d59, 0x1f1e22, 0xd8322a, 0x8e1f22, 0xe8762a, 0xf2c230, 0xe8dcb0, 0x9ccc3c, 0x3f8f4c, 0x1f4d34, 0x2aa198, 0x6ab0e0, 0x2f62b0, 0x1c2c58, 0x7d4fb3, 0xe07aa0, 0x7a4a2c, 0xc8a070];
 const PAL_NAMES = ['Blanco', 'Gris claro', 'Gris oscuro', 'Negro', 'Rojo', 'Bordó', 'Naranja', 'Amarillo', 'Crema', 'Lima', 'Verde', 'Verde oscuro', 'Turquesa', 'Celeste', 'Azul', 'Azul marino', 'Violeta', 'Rosa', 'Marrón', 'Arena'];
 const PAL_LIN = PAL.map((c) => new THREE.Color(c));
-const GLASS_LIN = new THREE.Color(0x2b3640), DARK_LIN = new THREE.Color(0x1d1c1f);
+const GLASS_LIN = new THREE.Color(0x9fd6ee), DARK_LIN = new THREE.Color(0x1d1c1f);
 function nearestPal(hexc) {
   const c = new THREE.Color(Number(hexc) || 0); let bi = 0, bd = Infinity;
   PAL_LIN.forEach((p, i) => { const d = (p.r - c.r) ** 2 + (p.g - c.g) ** 2 + (p.b - c.b) ** 2; if (d < bd) { bd = d; bi = i; } });
@@ -4153,7 +4184,7 @@ function bodyColors(o) {
   const out = new Array(o.tris), bc = PAL_LIN[clamp(o.bc | 0, 0, PAL.length - 1)];
   for (let t = 0; t < o.tris; t++) {
     const p = o.pc ? o.pc[t] : 255;
-    out[t] = p !== 255 && PAL_LIN[p] ? PAL_LIN[p] : o.mat[t] === 1 ? GLASS_LIN : o.mat[t] === 2 ? DARK_LIN : bc;
+    out[t] = o.mat[t] === 1 ? GLASS_LIN : p !== 255 && PAL_LIN[p] ? PAL_LIN[p] : o.mat[t] === 2 ? DARK_LIN : bc; // los vidrios quedan celestes siempre
   }
   return out;
 }
@@ -4232,7 +4263,7 @@ function paintAt(b, p, r, color) {
   for (let t = 0; t < b.tris; t++) {
     const a = I[t * 3] * 3, c = I[t * 3 + 1] * 3, d = I[t * 3 + 2] * 3;
     const cx = (P[a] + P[c] + P[d]) / 3, cy = (P[a + 1] + P[c + 1] + P[d + 1]) / 3, cz = (P[a + 2] + P[c + 2] + P[d + 2]) / 3;
-    if ((cx - p[0]) ** 2 + (cy - p[1]) ** 2 + (cz - p[2]) ** 2 <= r * r && b.pc[t] !== color) { b.pc[t] = color; n++; }
+    if ((cx - p[0]) ** 2 + (cy - p[1]) ** 2 + (cz - p[2]) ** 2 <= r * r && b.pc[t] !== color && b.mat[t] !== 1) { b.pc[t] = color; n++; }
   }
   return n;
 }
@@ -5258,6 +5289,8 @@ function loadSel(id, ref) {
     selWait.delete(ref);
     if (!b) return;
     G.selBodies.set(id, Object.assign({}, b, { dbId: ref, catRef: ref }));
+    // tu versión pintada toma los vidrios del modelo publicado (si es la misma malla)
+    for (const k of C.CAR_KEYS) { const o = objs[k]; if (o && o.cat === id && o.tris === b.tris && o.mat !== b.mat) { o.mat = b.mat; if (o.base) o.base.mat = b.mat; } }
     if (id === selId()) { if (G.garage.active) garageBuild(); else refreshMyCar(); }
   }, true);
 }

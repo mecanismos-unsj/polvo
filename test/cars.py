@@ -16,7 +16,7 @@ async def main():
             elif u.endswith('polvo-config.js'): await r.fulfill(body=cfg, content_type='text/javascript')
             else: await r.continue_()
         await ctx.route('**/*', route)
-        await ctx.add_init_script("if(!localStorage.getItem('mockdb'))localStorage.setItem('mockdb',JSON.stringify(%s));localStorage.setItem('polvo.cam2','0');" % seed)
+        await ctx.add_init_script("if(!localStorage.getItem('mockdb'))localStorage.setItem('mockdb',JSON.stringify(%s));localStorage.setItem('polvo.cam2','2');" % seed)
         pg = await ctx.new_page(); errs=[]
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: errs.append(m.text) if m.type=='error' else None)
@@ -26,7 +26,7 @@ async def main():
         print('cars', ids)
         await pg.click('#bSolo'); await asyncio.sleep(3)
         await pg.click('#bStart'); await asyncio.sleep(6)
-        await pg.evaluate("window.__polvoInput = () => ({steer: 0.35, thr: 0.5, brk: 0, hb: 0})")
+        await pg.evaluate("window.__polvoInput = () => ({steer: 0.0, thr: 0.0, brk: 0, hb: 0})")
         for i,m in enumerate(ids):
             await pg.evaluate(f"(() => {{ const P=window.__polvo; P.prefs.model='{m}'; P.selRaw(); }})()")
             await asyncio.sleep(2.5)
