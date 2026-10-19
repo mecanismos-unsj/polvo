@@ -246,11 +246,11 @@
   // CUENTA DEL DUEÑO (para publicar autos en el catálogo) e importación de los datos de Claude
   // ===================================================================
   function accountUi() {
-    const row = document.querySelector('#menu .row:last-of-type') || document.querySelector('#menu .row');
+    const row = document.getElementById('mTools') || document.querySelector('#menu .row');
     const full = document.getElementById('bFull'); if (full) full.hidden = true;
     const st = document.createElement('style'); st.textContent = '#touch [data-k="fs"]{display:none!important}'; document.head.appendChild(st);
     if (!row || document.getElementById('bAccount')) return;
-    const b = document.createElement('button'); b.className = 'btn'; b.id = 'bAccount'; b.textContent = 'Cuenta';
+    const b = document.createElement('button'); b.className = 'btn sm'; b.id = 'bAccount'; b.textContent = 'Cuenta';
     row.appendChild(b);
     const panel = document.createElement('section');
     panel.className = 'panel keyspanel'; panel.id = 'accPanel'; panel.hidden = true; panel.setAttribute('aria-label', 'Cuenta');

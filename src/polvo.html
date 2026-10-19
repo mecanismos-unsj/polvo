@@ -224,6 +224,63 @@ html.touch #hud #mini { top: calc(62px + env(safe-area-inset-top, 0px)); }
   .lapbox { font-size: 12px; }
 }
 @media (max-width: 640px) { .hud-bl { display: none; } .sbox span { font-size: 46px; } }
+
+/* ---------- menú y sala: tarjeta centrada, lo esencial a la vista ---------- */
+.menu > * { min-width: 0; }
+.panel, .panel * { box-sizing: border-box; }
+.menu { width: min(440px, calc(100% - 24px)); padding: 22px 22px 16px; gap: 14px; justify-items: stretch; }
+.logo { margin: 0; text-align: center; font-family: var(--display); font-weight: 800; font-size: 64px; line-height: .85; letter-spacing: .14em; padding-left: .14em; }
+.pilot { display: grid; grid-template-columns: 1fr 72px; gap: 8px; }
+.pilot .field { width: 100%; font-size: 16px; padding: 11px 12px; }
+#num { width: 100%; }
+.menu .cars { display: flex; grid-template-columns: none; overflow-x: auto; gap: 8px; max-height: none; padding-bottom: 4px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.menu .car { flex: 0 0 auto; min-width: 128px; padding: 9px 12px; gap: 2px; scroll-snap-align: start; }
+.menu .car b { font-size: 21px; white-space: nowrap; }
+.menu .car span:not(.size) { display: none; }
+.menu .car .size { font-size: 12px; color: var(--muted); }
+.mplay { display: grid; gap: 8px; }
+.btn.big { padding: 14px 16px; font-size: 22px; }
+.joinrow { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.joinrow #code { width: 100%; }
+.mtools { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.mtools .btn { background: transparent; border-color: transparent; color: var(--muted); }
+.mtools .btn:hover { color: var(--paper); background: rgba(239,230,211,.08); }
+#netNote { text-align: center; font-size: 12.5px; }
+.side { display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; top: calc(16px + env(safe-area-inset-top, 0px)); bottom: auto; right: max(16px, env(safe-area-inset-right)); width: min(360px, calc(100% - 32px)); max-height: calc(100% - 32px); }
+.lhead { display: flex; align-items: center; gap: 8px; padding: 12px 14px 10px; }
+.lcode { flex: 1 1 auto; display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.lcode .label { margin: 0; }
+.lcode strong { font-family: var(--display); font-size: 34px; font-weight: 800; letter-spacing: .16em; line-height: 1; }
+.btn.icon { padding: 6px 10px; }
+.badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: rgba(239,230,211,.16); font-size: 12px; letter-spacing: 0; line-height: 18px; }
+.ltabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-bottom: 1px solid var(--line); padding: 0 8px; }
+.ltabs button { white-space: nowrap; background: none; border: 0; border-bottom: 3px solid transparent; padding: 9px 2px 7px; font-family: var(--display); font-weight: 700; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.ltabs button[aria-selected="true"] { color: var(--paper); border-bottom-color: var(--plate); }
+.ltabs button[hidden] { display: none; }
+.lbody { overflow-y: auto; padding: 12px 14px; flex: 1 1 auto; min-height: 0; }
+.lpane { display: grid; gap: 8px; }
+.lpane .label { margin: 4px 0 0; }
+.lpane .field { width: 100%; }
+.lrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+.lfoot { border-top: 1px solid var(--line); padding: 10px 14px 12px; display: grid; gap: 8px; }
+.lfoot .note { font-size: 12.5px; }
+.lfoot .note:empty { display: none; }
+.lbtns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-items: stretch; }
+.lbtns #bStart { grid-column: 1 / -1; padding: 11px 16px; font-size: 21px; }
+.lbtns .btn.sm { background: transparent; border-color: var(--line); }
+@media (max-width: 640px) {
+  .side { top: auto; bottom: calc(10px + env(safe-area-inset-bottom, 0px)); left: 10px; right: 10px; width: auto; max-height: 64%; }
+}
+@media (max-height: 520px) {
+  .menu { padding: 12px 18px 10px; gap: 9px; width: min(520px, calc(100% - 24px)); }
+  .logo { font-size: 42px; }
+  .btn.big { padding: 9px 14px; font-size: 18px; }
+  .mplay { grid-template-columns: 1.2fr 1fr auto; }
+  .side { top: calc(8px + env(safe-area-inset-top, 0px)); bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-height: none; width: min(380px, 52%); left: auto; right: max(10px, env(safe-area-inset-right)); padding: 0; gap: 0; }
+  .lcode strong { font-size: 26px; }
+  .lhead { padding: 8px 12px 6px; }
+  .lbody { padding: 8px 12px; }
+}
 /* ---------- celular: controles táctiles y pantallas chicas ---------- */
 /* táctil: todo el HUD en la columna izquierda, botones y mapa a la derecha, centro libre */
 html.touch .hud-tl .hud-tc, html.touch .hud-tl .hud-br { position: static; transform: none; left: auto; right: auto; top: auto; bottom: auto; }
@@ -370,71 +427,69 @@ html.touch .gear { font-size: 30px; width: 36px; height: 42px; }
 </div>
 <div id="rotate" hidden><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M2 14a8 8 0 0 0 8 8"/><path d="M2 18v-4h4"/></svg><b>Girá el celular</b><p class="note">Polvo se maneja con el teléfono horizontal.</p></div></div>
 <section class="panel menu" id="menu" aria-label="Menú principal">
-  <div class="brand">
-    <h1>POLVO</h1>
-    <p>Rally online para hasta 10 amigos</p>
+  <h1 class="logo">POLVO</h1>
+  <div class="pilot">
+    <input class="field" id="name" maxlength="14" placeholder="Tu nombre" autocomplete="off" aria-label="Tu nombre">
+    <input class="field" id="num" type="number" min="1" max="99" value="7" aria-label="Número en el techo">
   </div>
-  <div>
-    <p class="label">Piloto</p>
-    <div class="row">
-      <input class="field" id="name" maxlength="14" placeholder="Tu nombre" autocomplete="off">
-      <input class="field" id="num" type="number" min="1" max="99" value="7" aria-label="Número en el techo">
+  <div class="cars" id="cars" aria-label="Auto"></div>
+  <div class="mplay">
+    <button class="btn primary big" id="bCreate">Crear sala</button>
+    <div class="joinrow">
+      <input class="field" id="code" maxlength="4" placeholder="CÓDIGO" autocomplete="off" aria-label="Código de sala">
+      <button class="btn" id="bJoin">Unirse</button>
     </div>
-  </div>
-  <div>
-    <p class="label">Auto</p>
-    <div class="cars" id="cars"></div>
-  </div>
-  <div class="divider"></div>
-  <div class="row">
-    <button class="btn primary" id="bCreate">Crear sala</button>
-    <input class="field" id="code" maxlength="4" placeholder="CÓDIGO" autocomplete="off" aria-label="Código de sala">
-    <button class="btn" id="bJoin">Unirse</button>
     <button class="btn" id="bSolo">Práctica</button>
-    <button class="btn" id="bKeys">Teclas</button>
-    <button class="btn" id="bGarage">Taller</button>
-    <button class="btn" id="bFull" hidden>Pantalla completa</button>
+  </div>
+  <div class="mtools" id="mTools">
+    <button class="btn sm" id="bKeys">Controles</button>
+    <button class="btn sm" id="bGarage">Taller</button>
+    <button class="btn sm" id="bFull" hidden>Pantalla completa</button>
   </div>
   <p class="note" id="netNote">Conectando…</p>
 </section>
 
 <section class="panel side" id="lobby" hidden aria-label="Sala">
-  <div class="roomcode">
-    <div><p class="label" id="lTitle">Sala</p><strong id="lCode">—</strong></div>
-    <div class="row" style="flex-wrap:nowrap"><button class="btn sm" id="bCopy">Copiar</button><button class="btn sm" id="bLobbyX" aria-label="Cerrar y manejar">✕</button></div>
-  </div>
-  <ul class="plist" id="plist"></ul>
-  <div id="hostCtl">
-    <p class="label">Modo</p>
-    <div class="seg seg2" id="segMode"><button data-m="rally" aria-pressed="true">Rally</button><button data-m="offroad" aria-pressed="false" title="Todos en camioneta: obstáculos, barro, conos y vuelcos">Off road</button></div>
-    <p class="note" id="modeNote" style="margin-top:6px"></p>
-    <p class="label" style="margin-top:12px">Ambiente</p>
-    <div class="seg seg4" id="segBiome"></div>
-    <div class="row" style="margin-top:12px;align-items:flex-end">
-      <div style="flex:1 1 140px;min-width:0"><label class="label" for="surfSel">Superficie</label>
-        <select id="surfSel" class="field" style="width:100%"><option value="">Según el ambiente</option><option value="asphalt">Asfalto</option><option value="gravel">Ripio</option><option value="dirt">Tierra</option><option value="snow">Nieve</option></select>
-      </div>
-      <label class="check" style="padding-bottom:9px"><input type="checkbox" id="wallChk"> Paredes</label>
-    </div>
-    <div class="row" style="justify-content:space-between;margin-top:12px">
-      <div><p class="label">Vueltas</p>
+  <header class="lhead">
+    <div class="lcode"><span class="label" id="lTitle">Sala</span><strong id="lCode">—</strong></div>
+    <button class="btn sm" id="bCopy">Copiar</button>
+    <button class="btn sm icon" id="bLobbyX" aria-label="Cerrar y manejar">✕</button>
+  </header>
+  <nav class="ltabs" id="lTabs" role="tablist">
+    <button role="tab" data-t="carrera" aria-selected="true">Carrera</button>
+    <button role="tab" data-t="pista" aria-selected="false">Pista</button>
+    <button role="tab" data-t="pilotos" aria-selected="false">Pilotos <span id="lCount" class="badge"></span></button>
+    <button role="tab" data-t="manejo" aria-selected="false" id="tabManejo">Manejo</button>
+  </nav>
+  <div class="lbody">
+    <div class="lpane" data-p="carrera" id="hostCtl">
+      <p class="label">Modo</p>
+      <div class="seg seg2" id="segMode"><button data-m="rally" aria-pressed="true">Rally</button><button data-m="offroad" aria-pressed="false">Off road</button></div>
+      <p class="note" id="modeNote"></p>
+      <p class="label">Ambiente</p>
+      <div class="seg seg4" id="segBiome"></div>
+      <div class="lrow"><span class="label">Vueltas</span>
         <div class="stepper"><button class="btn sm" id="lapM" aria-label="Menos vueltas">−</button><output id="lapsOut">3</output><button class="btn sm" id="lapP" aria-label="Más vueltas">+</button></div>
       </div>
-      <div><p class="label">Generada</p>
+    </div>
+    <div class="lpane trackrow" data-p="pista" hidden>
+      <p class="label">Circuito</p>
+      <select id="trackSel" class="field" aria-label="Circuito"></select>
+      <div class="lrow"><span class="label">Pista generada</span>
         <div class="stepper"><output id="seedOut">1</output><button class="btn sm" id="bSeed">Otra</button></div>
       </div>
+      <p class="label">Superficie</p>
+      <select id="surfSel" class="field"><option value="">Según el ambiente</option><option value="asphalt">Asfalto</option><option value="gravel">Ripio</option><option value="dirt">Tierra</option><option value="snow">Nieve</option></select>
+      <label class="check"><input type="checkbox" id="wallChk"> Paredes a los costados</label>
+      <button class="btn sm" id="bTrackUp">Subir pista (SVG)</button>
+      <p class="note" id="trackNote"></p>
     </div>
-  </div>
-  <div class="trackrow">
-    <p class="label">Circuito</p>
-    <div class="row">
-      <select id="trackSel" class="field" aria-label="Circuito"></select>
-      <button class="btn sm" id="bTrackUp">Subir SVG</button>
+    <div class="lpane" data-p="pilotos" hidden>
+      <ul class="plist" id="plist"></ul>
     </div>
-    <p class="note" id="trackNote"></p>
-  </div>
-  <button class="btn sm" id="bTune" aria-expanded="false" aria-controls="tuneBox">Ajustes de manejo</button>
-  <div id="tuneBox" hidden>
+    <div class="lpane" data-p="manejo" hidden>
+      <button class="btn sm" id="bTune" aria-expanded="false" aria-controls="tuneBox" hidden>Ajustes de manejo</button>
+  <div id="tuneBox">
     <p class="label">Ajustes de manejo · iguales para todos</p>
     <div class="tune">
       <label for="tGrip">Adherencia</label><input type="range" id="tGrip" min="25" max="500" step="5" value="275"><output id="oGrip">100%</output>
@@ -446,14 +501,18 @@ html.touch .gear { font-size: 30px; width: 36px; height: 42px; }
     </div>
     <button class="btn sm" id="tReset" style="margin-top:8px">Restablecer</button>
   </div>
-  <p class="note" id="lNote">Andá dando vueltas mientras llegan los demás.</p>
-  <div class="row">
-    <button class="btn primary" id="bStart">Largar</button>
-    <button class="btn" id="bKeys2">Teclas</button>
-    <button class="btn" id="bGarage2">Taller</button>
-    <button class="btn" id="bLeave">Salir</button>
-    <button class="btn" id="bLobbyClose">Manejar</button>
+    </div>
   </div>
+  <footer class="lfoot">
+    <p class="note" id="lNote"></p>
+    <div class="lbtns">
+      <button class="btn primary" id="bStart">Largar</button>
+      <button class="btn sm" id="bKeys2">Controles</button>
+      <button class="btn sm" id="bGarage2">Taller</button>
+      <button class="btn sm" id="bLeave">Salir</button>
+      <button class="btn" id="bLobbyClose" hidden>Manejar</button>
+    </div>
+  </footer>
 </section>
 
 <section class="panel keyspanel" id="keysPanel" hidden aria-label="Teclas">
@@ -4001,7 +4060,15 @@ keysHint();
 function setCfg(patch) { G.cfg = Object.assign({}, G.cfg, patch); applyCfg(G.cfg); }
 
 function lobbyFocus() { return G.garage.active || !$('trackPanel').hidden; }
-function showLobby(on) { $('lobby').hidden = !on; if (on) refreshLobby(); }
+function showLobby(on) { $('lobby').hidden = !on; if (on) { if (!lobbyTab) setLobbyTab(G.isHost ? 'carrera' : 'pilotos'); refreshLobby(); } }
+// pestañas de la sala: solo se ve una parte a la vez
+let lobbyTab = '';
+function setLobbyTab(t) {
+  lobbyTab = t;
+  for (const b of $('lTabs').children) b.setAttribute('aria-selected', String(b.dataset.t === t));
+  for (const p of document.querySelectorAll('#lobby .lpane')) p.hidden = p.dataset.p !== t;
+}
+$('lTabs').addEventListener('click', (e) => { const b = e.target.closest('[data-t]'); if (b) setLobbyTab(b.dataset.t); });
 function toggleLobby() { if (!$('results').hidden) return; showLobby($('lobby').hidden); }
 $('bLobbyClose').addEventListener('click', () => showLobby(false));
 $('bLobbyX').addEventListener('click', () => showLobby(false));
@@ -4019,8 +4086,6 @@ function refreshLobby() {
     $('o' + id.slice(1)).textContent = cfg.t[k] + '%';
   });
   $('tReset').hidden = !G.isHost;
-  $('bTune').hidden = !G.isHost;
-  if (!G.isHost) $('tuneBox').hidden = true;
   refreshTrackSel();
   $('seedOut').textContent = cfg.sd;
   for (const id of ['lapM', 'lapP', 'bSeed']) $(id).disabled = !G.isHost || cfg.ph !== 'lobby';
@@ -4028,10 +4093,13 @@ function refreshLobby() {
   $('bStart').disabled = cfg.ph !== 'lobby';
   const n = 1 + [...G.remotes.values()].filter((r) => r.pr).length;
   $('lNote').textContent = cfg.ph !== 'lobby' ? 'Carrera en curso.' : G.isHost
-    ? (G.solo ? 'Elegí ambiente y vueltas, y largá cuando quieras.' : n > 10 ? 'Hay más de 10 en la sala: largan los primeros 10.' : 'Cuando estén todos, largá. Hasta 10 autos.')
-    : 'Esperando a que el anfitrión largue. Mientras, andá dando vueltas.';
+    ? (G.solo ? '' : n > 10 ? 'Hay más de 10 en la sala: largan los primeros 10.' : n < 2 ? 'Pasales el código a tus amigos.' : '')
+    : 'Esperando que el anfitrión largue.';
   const items = [{ name: cleanName(prefs.name) || 'Vos', color: prefs.color, key: activeKey(), me: true, host: G.isHost }];
   for (const rm of G.remotes.values()) if (rm.pr) items.push({ name: rm.name, color: rm.color, key: rm.key, me: false, host: rm.pr.h === 1, ping: rm.rtt });
+  $('lCount').textContent = items.length;
+  $('tabManejo').hidden = !G.isHost;
+  if (!G.isHost && lobbyTab === 'manejo') setLobbyTab('pilotos');
   $('plist').innerHTML = items.map((it) => `<li><span class="dot" style="background:${hex(it.color)}"></span><span>${esc(it.name)}${it.me ? ' <em>vos</em>' : ''}${it.host ? ' <em>anfitrión</em>' : ''}</span><em>${C.CARS[it.key].size}${it.ping ? ' · ' + Math.round(it.ping) + ' ms' : ''}</em></li>`).join('');
 }
 setInterval(() => { if (G.mode === 'play' && !$('lobby').hidden) refreshLobby(); }, 1000);
